@@ -4,7 +4,7 @@ title: Telegram-бот
 
 # Simple bot
 
-[= 75% "75%"]
+[= 50% "50%"]
 
 !!! note "Phasellus posuere in sem ut cursus"
 
