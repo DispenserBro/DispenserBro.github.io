@@ -1,0 +1,8 @@
+[Ee]nv/
+__pycache__/
+.vs/
+.vscode/
+
+docs/
+
+.env

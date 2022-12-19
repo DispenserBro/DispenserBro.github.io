@@ -1,0 +1,65 @@
+site_name: Мое портфолио
+site_description: Портфолио из работ, которые я выполнил
+site_author: DispenserBro
+site_url: https://github.com/DispenserBro/DispenserBro.github.io
+docs_dir: src
+site_dir: docs
+
+repo_name: DispenserBro
+repo_url: https://github.com/DispenserBro
+edit_uri: ""
+
+copyright: Copyright &copy; 2022 DispenserBro
+
+theme:
+  name: material
+  custom_dir: src/overrides
+  language: ru
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: teal
+      toggle:
+        icon: material/lightbulb
+        name: Переключиться на темную тему
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: teal
+      toggle:
+        icon: material/lightbulb-outline
+        name: Переключиться на светлую тему
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    logo: material/robot
+
+nav:
+  - 'Введение': index.md
+  - 'Telegram-бот': projects/telegram-bot.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/telegram
+      link: https://t.me/Dis_Br
+      name: "Профиль в Телеграм"
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/DispenserBro
+      name: GitHub
+
+extra_css:
+  - overrides/stylesheets/progressbar.css
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.progressbar
+  - attr_list
+  - toc:
+      permalink: true
+
+plugins: []
