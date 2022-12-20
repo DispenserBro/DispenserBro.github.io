@@ -1,0 +1,58 @@
+.progress-label {
+  position: absolute;
+  text-align: center;
+  font-weight: 700;
+  color: #000;
+  width: 100%;
+  margin: 0;
+  line-height: 1.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 1.2rem;
+  float: left;
+  background-color: #2979ff;
+  border-radius: 15px;
+}
+
+.progress {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0;
+  height: 1.2rem;
+  background-color: #eeeeee;
+  position: relative;
+  outline: #000 solid 2px;
+  border-radius: 15px;
+}
+
+.progress.thin {
+  margin-top: 0.9rem;
+  height: 0.4rem;
+}
+
+.progress.thin .progress-label {
+  margin-top: -0.4rem;
+}
+
+.progress.thin .progress-bar {
+  height: 0.4rem;
+}
+
+.progress-100plus .progress-bar {
+  background-color: #2979ff;
+}
+
+.progress-80plus .progress-bar {
+  background-color: #00e676;
+}
+
+.progress-60plus .progress-bar {
+  background-color: #fbc02d;
+}
+
+.progress-40plus .progress-bar {
+  background-color: #ff9100;
+}
