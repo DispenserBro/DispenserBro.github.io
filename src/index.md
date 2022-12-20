@@ -8,6 +8,7 @@ hide:
 ## Simple syncronious telegram bot
 
 [Link](./projects/telegram-bot.md)
+
 ![Imgur](https://i.imgur.com/JfqhG4v.png)
 
 ## Index completeness
