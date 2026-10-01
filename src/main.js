@@ -82,12 +82,139 @@ document.querySelectorAll('.reveal').forEach((item) => {
 const initialId = location.hash.replace('#project-', '');
 if (location.hash.startsWith('#project-')) openProject(initialId, null);
 
-// Three.js loads separately so project content is available before WebGL initializes.
-import('./world.js').then(({ createWorld }) => createWorld()).catch(() => {
-  document.querySelector('#world-fallback').classList.add('visible');
-  document.querySelector('#scene-status').textContent = 'Danro Jump';
-  document.querySelector('#world-hint').textContent = 'Скриншот Danro Jump';
-  document.querySelector('.world-bottom p').textContent = 'Игровой экран Danro Jump';
-  document.querySelector('.scene-controls').hidden = true;
-  document.querySelector('#scene-reset').hidden = true;
+// The 3D exhibition and the accessible document share the same project data.
+let exhibition;
+let sceneMode = true;
+let selectedId;
+let sceneCategory = 'all';
+const sceneShell = document.querySelector('#portfolio-scene');
+const viewToggle = document.querySelector('#view-toggle');
+const infoDialog = document.querySelector('#info-dialog');
+const effectButtons = {
+  'danro-jump': 'Включить подсветку', danro: 'Включить подсветку',
+  exchanger: 'Выдать жетоны', wizard: 'Применить заклинание',
+  plate: 'Подключить плату', typing: 'Набрать текст',
+  led: 'Зажечь панель', themes: 'Сменить тему',
+};
+function setView(useScene) {
+  sceneMode = useScene;
+  sceneShell.hidden = !useScene;
+  document.body.classList.toggle('scene-mode', useScene);
+  document.querySelector('main').inert = useScene;
+  document.querySelector('footer').inert = useScene;
+  viewToggle.textContent = useScene ? 'Список проектов' : '3D-выставка';
+  viewToggle.setAttribute('aria-pressed', String(!useScene));
+  exhibition?.setVisible(useScene);
+  if (useScene) exhibition?.resize();
+}
+setView(true);
+function selectSceneProject(id) {
+  const p = projects.find(item => item.id === id);
+  if (!p) return;
+  if (sceneCategory !== 'all' && p.category !== sceneCategory) {
+    sceneCategory = 'all';
+    document.querySelectorAll('[data-scene-filter]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sceneFilter === 'all')));
+    document.querySelectorAll('#scene-dock [data-scene-project]').forEach(b => { b.hidden = false; });
+    exhibition?.filter('all');
+  }
+  selectedId = id;
+  document.querySelector('#scene-intro').hidden = true;
+  document.querySelector('#scene-project').hidden = false;
+  document.querySelector('#scene-project-kind').textContent = p.kind + ' / ' + p.number;
+  document.querySelector('#scene-project-title').textContent = p.title;
+  document.querySelector('#scene-project-description').textContent = p.description;
+  document.querySelector('#scene-project-stack').innerHTML = p.stack.map(t => '<span>'+t+'</span>').join('');
+  document.querySelector('#scene-project-source').href = github + p.source;
+  document.querySelector('#scene-interact').textContent = effectButtons[id];
+  document.querySelector('#scene-effect-status').textContent = 'Это интерактивная иллюстрация проекта.';
+  document.querySelectorAll('[data-scene-project]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sceneProject === id)));
+  sceneShell.dataset.selected = id;
+  delete sceneShell.dataset.effect;
+  exhibition?.focus(id);
+  document.querySelector('#scene-project').scrollTop = 0;
+  document.querySelector('#scene-dock [data-scene-project="'+id+'"]').scrollIntoView({ block:'nearest', inline:'nearest', behavior:reducedMotion.matches?'instant':'smooth' });
+}
+function overview() {
+  selectedId = null;
+  document.querySelector('#scene-intro').hidden = false;
+  document.querySelector('#scene-project').hidden = true;
+  document.querySelectorAll('[data-scene-project]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  delete sceneShell.dataset.selected;
+  delete sceneShell.dataset.effect;
+  exhibition?.overview();
+}
+document.querySelector('#scene-dock').innerHTML = projects.map(p => '<button data-scene-project="'+p.id+'" data-category="'+p.category+'" aria-pressed="false" style="--project-accent:'+p.accent+'"><span>'+p.number+'</span><strong>'+p.title+'</strong></button>').join('');
+document.querySelector('#scene-labels').innerHTML = projects.map(p => '<button class="scene-label" data-scene-project="'+p.id+'" aria-pressed="false" style="--project-accent:'+p.accent+'"><span>'+p.number+' / '+p.stack[0]+'</span><strong>'+p.title+'</strong><i aria-hidden="true">↗</i></button>').join('');
+sceneShell.addEventListener('click', e => {
+  const b = e.target.closest('[data-scene-project]');
+  if (b) selectSceneProject(b.dataset.sceneProject);
 });
+document.querySelector('#scene-project-details').addEventListener('click', e => openProject(selectedId, e.currentTarget));
+document.querySelector('#scene-interact').addEventListener('click', () => {
+  if (selectedId && exhibition) document.querySelector('#scene-effect-status').textContent = exhibition.interact(selectedId);
+});
+document.querySelector('#scene-back').addEventListener('click', overview);
+document.querySelector('#scene-overview').addEventListener('click', overview);
+document.querySelector('#scene-explore').addEventListener('click', () => selectSceneProject('danro-jump'));
+document.querySelectorAll('[data-scene-filter]').forEach(b => b.addEventListener('click', () => {
+  sceneCategory = b.dataset.sceneFilter;
+  document.querySelectorAll('[data-scene-filter]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  document.querySelectorAll('#scene-dock [data-scene-project]').forEach(x => { x.hidden = sceneCategory !== 'all' && x.dataset.category !== sceneCategory; });
+  overview();
+  exhibition?.filter(sceneCategory);
+}));
+viewToggle.addEventListener('click', () => { setView(!sceneMode); if (!sceneMode) document.querySelector('#projects').scrollIntoView(); });
+document.querySelector('[data-enter-scene]').addEventListener('click', () => setView(true));
+document.querySelector('.brand').addEventListener('click', e => { if (sceneMode) { e.preventDefault(); overview(); } });
+document.querySelectorAll('.header nav a').forEach(a => a.addEventListener('click', e => {
+  if (!sceneMode) return;
+  e.preventDefault();
+  if (a.hash === '#projects') { overview(); return; }
+  const fragment = document.querySelector(a.hash).cloneNode(true);
+  fragment.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+  fragment.removeAttribute('id');
+  fragment.classList.remove('section-width');
+  document.querySelector('#info-content').replaceChildren(fragment);
+  infoDialog.setAttribute('aria-label', sourceLabel(a.hash));
+  infoDialog.showModal();
+  infoDialog.dataset.trigger = a.hash;
+}));
+function sourceLabel(hash) { return hash === '#about' ? 'Обо мне — Данил Ярош' : 'Как я работаю'; }
+document.querySelector('.skip-link').addEventListener('click', e => {
+  if (sceneMode) { e.preventDefault(); document.querySelector('#scene-dock button:not([hidden])')?.focus(); }
+});
+infoDialog.querySelector('.dialog-close').addEventListener('click', () => infoDialog.close());
+infoDialog.addEventListener('close', () => document.querySelector('.header nav a[href="'+infoDialog.dataset.trigger+'"]')?.focus());
+infoDialog.addEventListener('click', e => { if (e.target === infoDialog) { const r=infoDialog.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)infoDialog.close(); } });
+document.addEventListener('keydown', e => {
+  if (!sceneMode || dialog.open || infoDialog.open || ['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.key === 'Escape') { overview(); return; }
+  if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !e.target.closest('.scene-category-bar')) {
+    e.preventDefault();
+    const visible = projects.filter(p => sceneCategory === 'all' || p.category === sceneCategory);
+    const i = visible.findIndex(p => p.id === selectedId);
+    selectSceneProject(visible[(i + (e.key === 'ArrowRight' ? 1 : -1) + visible.length) % visible.length].id);
+  }
+});
+const motionButton = document.querySelector('#scene-motion');
+motionButton.setAttribute('aria-pressed', String(!reducedMotion.matches));
+motionButton.textContent = reducedMotion.matches ? 'Движение: выкл.' : 'Движение: вкл.';
+motionButton.addEventListener('click', () => {
+  const on = motionButton.getAttribute('aria-pressed') !== 'true';
+  motionButton.setAttribute('aria-pressed', String(on));
+  motionButton.textContent = on ? 'Движение: вкл.' : 'Движение: выкл.';
+  exhibition?.setMotion(on);
+});
+function fallback() {
+  setView(false);
+  document.querySelector('#scene-failure').hidden = false;
+  viewToggle.disabled = true;
+  viewToggle.textContent = '3D недоступно';
+  document.querySelector('[data-enter-scene]').hidden = true;
+}
+import('./world.js').then(({ createWorld }) => {
+  exhibition = createWorld({ projects, onSelect: selectSceneProject, onFailure: fallback });
+  exhibition.setVisible(sceneMode);
+  exhibition.setMotion(motionButton.getAttribute('aria-pressed') === 'true');
+  if(selectedId) exhibition.focus(selectedId);
+}).catch(fallback);
