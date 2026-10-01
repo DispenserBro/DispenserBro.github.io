@@ -125,7 +125,7 @@ export function createWorld() {
     texture.colorSpace = THREE.SRGBColorSpace;
     return texture;
   }
-  const marqueeTexture = canvasLabel('DANRO', 'CODE / PLAY / HARDWARE');
+  const marqueeTexture = canvasLabel('DANRO', 'ИГРА / УПРАВЛЕНИЕ');
   const marquee = new THREE.Mesh(new THREE.PlaneGeometry(1.28, 0.295), new THREE.MeshBasicMaterial({ map: marqueeTexture, toneMapped: false }));
   marquee.position.set(0, 1.26, 0.651);
   cabinet.add(marquee);
@@ -172,20 +172,20 @@ export function createWorld() {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#6bd8cd';
       ctx.font = '20px monospace';
-      ctx.fillText('DEVICE / SERIAL', 40, 62);
+      ctx.fillText('КОНТРОЛЛЕР / COM', 40, 62);
       ctx.font = 'bold 75px monospace';
       ctx.fillStyle = '#d7ffed';
       ctx.fillText('READY!', 40, 166);
       ctx.fillStyle = '#72989d';
       ctx.font = '22px monospace';
-      ['AUTHENTICATED', 'INPUT  ▪  OUTPUT', 'STATE  ▪  EVENTS', 'CONTROLLER ONLINE'].forEach((text, index) => ctx.fillText(text, 42, 238 + index * 48));
+      ['АВТОРИЗАЦИЯ ПРОЙДЕНА', 'ВХОДЫ  ▪  ВЫХОДЫ', 'СОСТОЯНИЯ  ▪  СОБЫТИЯ', 'КОНТРОЛЛЕР НА СВЯЗИ'].forEach((text, index) => ctx.fillText(text, 42, 238 + index * 48));
       ctx.fillStyle = '#69e6b9';
       for (let i = 0; i < 8; i++) ctx.fillRect(42 + i * 54, 452, 34, 12);
     } else {
       ctx.textAlign = 'left';
       ctx.font = '20px monospace';
       ctx.fillStyle = '#839db7';
-      ctx.fillText('GAME / SYSTEMS', 35, 58);
+      ctx.fillText('ИГРОВОЙ СЕРВИС / C#', 35, 58);
       const lines = ['class GameService', '{', '  public void Start()', '  {', '    state.Enter();', '    input.Connect();', '    world.Run();', '  }', '}'];
       ctx.font = '23px monospace';
       lines.forEach((line, index) => {
@@ -217,7 +217,7 @@ export function createWorld() {
     controls.update();
   });
   document.querySelector('#scene-status').textContent = 'Danro Jump';
-  document.querySelector('#world-hint').textContent = 'Потяни, чтобы повернуть';
+  document.querySelector('#world-hint').textContent = 'Перетащи и поверни';
   host.dataset.ready = 'true';
 
   function resize() {
@@ -255,7 +255,8 @@ export function createWorld() {
     event.preventDefault();
     cancelAnimationFrame(frame);
     document.querySelector('#world-fallback').classList.add('visible');
-    document.querySelector('#world-hint').textContent = 'Игровой экран проекта';
+    document.querySelector('#world-hint').textContent = 'Скриншот Danro Jump';
+    document.querySelector('.world-bottom p').textContent = 'Игровой экран Danro Jump';
     document.querySelector('.scene-controls').hidden = true;
     document.querySelector('#scene-reset').hidden = true;
   });
