@@ -12,44 +12,36 @@
     <link rel="canonical" href="https://dispenserbro.github.io/" />
     <title>Данил Ярош — разработчик Python, C#, Unity и Godot</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <script type="module" crossorigin src="./assets/index-DwNZz8IF.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BqrIp-Id.css">
+    <script type="module" crossorigin src="./assets/index-d1kBRvtR.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BMqO1RyE.css">
   </head>
   <body>
-    <section class="scene-shell" id="portfolio-scene" hidden aria-label="3D-галерея проектов">
-      <div id="scene-canvas" aria-label="Потяни экран, чтобы повернуть. Колесо и стрелки переключают проекты." tabindex="0"></div>
+    <section class="scene-shell" id="portfolio-scene" hidden aria-label="Рабочий стол с проектами">
+      <div id="scene-canvas" aria-label="Потяни, чтобы повернуть компьютер. Нажми на окно программы или выбери проект слева." tabindex="0"></div>
       <div class="scene-vignette" aria-hidden="true"></div>
       <div class="scene-grain" aria-hidden="true"></div>
-      <div class="scene-watermark" aria-hidden="true">PLAY.<br />BUILD.</div>
+      <div class="scene-watermark" aria-hidden="true">WORK<br />SPACE</div>
       <div class="scene-labels" id="scene-labels"></div>
-      <div class="scene-intro" id="scene-intro">
-        <p class="eyebrow">ДАНИЛ ЯРОШ / РАЗРАБОТЧИК</p>
-        <h1>Игры.<br /><span class="hero-second">Код.</span><br /><span class="hero-last">Железо.</span></h1>
-        <p>Делаю игры и приложения.<br />Помогаю коду работать с реальными устройствами.</p>
-        <div class="hero-skills"><span>Python</span><span>C#</span><span>Unity</span><span>Godot</span></div>
-        <p class="scene-invitation">Восемь проектов — от аркадных игр до инструментов для разработчиков.</p>
-        <button class="button button-primary" id="scene-explore">Смотреть работы <span aria-hidden="true">↗</span></button>
-        <div class="scene-facts"><span>08 проектов</span><span>2,5 года опыта*</span></div>
-        <small>*На сентябрь 2026</small>
-      </div>
+      <aside class="project-sidebar" aria-label="Проекты Данила Яроша">
+        <div class="sidebar-heading"><p class="eyebrow">ДАНИЛ ЯРОШ / РАЗРАБОТЧИК</p><h1>Мои проекты<span>.</span></h1><p>Игры, приложения и инструменты.<br />Выбери работу — открою её на мониторе.</p></div>
+        <div class="scene-category-bar" role="group" aria-label="Категории проектов"><button data-scene-filter="all" aria-pressed="true">Все</button><button data-scene-filter="arcade" aria-pressed="false">Аркады</button><button data-scene-filter="desktop" aria-pressed="false">Приложения</button><button data-scene-filter="games" aria-pressed="false">Веб-игры</button><button data-scene-filter="tools" aria-pressed="false">Инструменты</button></div>
+        <div class="scene-dock" id="scene-dock" role="group" aria-label="Выбрать проект"></div>
+        <div class="sidebar-socials"><a href="https://t.me/Dis_Br" target="_blank" rel="noopener noreferrer">Telegram ↗</a><a href="https://vk.com/dis__bro" target="_blank" rel="noopener noreferrer">ВКонтакте ↗</a></div>
+      </aside>
+      <div class="scene-intro" id="scene-intro" hidden><button id="scene-explore">Открыть Danro Jump</button></div>
       <aside class="scene-project" id="scene-project" hidden aria-labelledby="scene-project-title">
-        <button class="scene-back" id="scene-back">← На главную</button>
+        <button class="scene-back" id="scene-back">Общий вид ПК</button>
         <p class="eyebrow" id="scene-project-kind"></p>
         <h2 id="scene-project-title"></h2>
         <button class="scene-project-preview" id="scene-project-preview" aria-label="Открыть скриншоты и видео проекта"></button>
         <p id="scene-project-description"></p>
         <div class="project-stack" id="scene-project-stack"></div>
         <div class="scene-project-actions"><button class="button button-primary" id="scene-project-details">Открыть проект <span aria-hidden="true">↗</span></button><a class="text-link" id="scene-project-source" target="_blank" rel="noopener noreferrer">Исходники ↗</a></div>
-        <div class="scene-interaction"><button id="scene-interact">Смотреть видео ↗</button><p id="scene-effect-status" role="status" aria-live="polite"></p></div>
+        <div class="scene-interaction"><button id="scene-interact">▶ Смотреть запись</button><p id="scene-effect-status" role="status" aria-live="polite"></p></div>
       </aside>
       <div class="scene-tools"><button id="scene-overview" aria-label="Вернуть общий вид сцены" title="Общий вид">⌂</button><button id="scene-motion" aria-pressed="true" aria-label="Автоматическое движение сцены">Движение: вкл.</button></div>
-      <div class="scene-help"><span id="scene-load-status" role="status">3D / THREE.JS</span><span>Потяни экран · Листай колесом</span></div>
+      <div class="scene-help"><span id="scene-load-status" role="status">3D / THREE.JS</span><span>Потяни ПК · Нажми на окно</span></div>
       <div class="scene-pagination"><span id="scene-current">01 / 08</span><button id="scene-prev" aria-label="Предыдущий проект">←</button><button id="scene-next" aria-label="Следующий проект">→</button></div>
-      <div class="scene-bottom">
-        <div class="scene-category-bar" role="group" aria-label="Категории в 3D-сцене"><button data-scene-filter="all" aria-pressed="true">Все проекты</button><button data-scene-filter="arcade" aria-pressed="false">Аркадные игры</button><button data-scene-filter="desktop" aria-pressed="false">Приложения</button><button data-scene-filter="games" aria-pressed="false">Веб-игры</button><button data-scene-filter="tools" aria-pressed="false">Инструменты</button></div>
-        <div class="scene-dock" id="scene-dock" role="group" aria-label="Выбрать проект"></div>
-        <div class="scene-bottom-meta"><span>Ставрополь · 2026</span><span>Python / C# / Unity / Godot</span><div class="scene-socials"><a href="https://t.me/Dis_Br" target="_blank" rel="noopener noreferrer">Telegram ↗</a><a href="https://vk.com/dis__bro" target="_blank" rel="noopener noreferrer">ВКонтакте ↗</a></div></div>
-      </div>
     </section>
     <p class="scene-failure" id="scene-failure" hidden role="status">На этом устройстве 3D-сцена недоступна. Все проекты можно посмотреть в списке.</p>
     <a class="skip-link" href="#projects">Перейти к проектам</a>

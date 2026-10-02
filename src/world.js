@@ -3,125 +3,137 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 export function createWorld({ projects, onSelect, onFailure }) {
-  const host = document.querySelector('#scene-canvas');
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'low-power' });
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.25;
-  renderer.domElement.setAttribute('aria-hidden', 'true');
-  host.appendChild(renderer.domElement);
-  const scene = new THREE.Scene(); scene.background = new THREE.Color('#0a0b12');
-  const camera = new THREE.PerspectiveCamera(38, 1, .1, 70);
-  const room = new RoomEnvironment(), pmrem = new THREE.PMREMGenerator(renderer);
-  const environment = pmrem.fromScene(room, .04);
-  scene.environment = environment.texture; scene.environmentIntensity = 1.1;
-  room.dispose(); pmrem.dispose();
-  scene.add(new THREE.HemisphereLight(0xd9e3ff, 0x12121c, 2));
-  for (const [color, intensity, position] of [[0xecf0ff, 7, [-4,8,9]], [0x5e76ff,8,[8,3,4]], [0xb8c8ff,6,[1,-5,2]]]) {
-    const light = new THREE.DirectionalLight(color, intensity); light.position.set(...position); scene.add(light);
+  const host=document.querySelector('#scene-canvas');
+  const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'low-power'});
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+  renderer.domElement.setAttribute('aria-hidden','true');host.appendChild(renderer.domElement);
+  const scene=new THREE.Scene();scene.background=new THREE.Color('#0a0c13');
+  const camera=new THREE.PerspectiveCamera(38,1,.1,80);
+  const room=new RoomEnvironment(),pmrem=new THREE.PMREMGenerator(renderer),env=pmrem.fromScene(room,.04);
+  scene.environment=env.texture;scene.environmentIntensity=.9;room.dispose();pmrem.dispose();
+  scene.add(new THREE.HemisphereLight(0xd7e2ff,0x101018,2));
+  for(const [color,intensity,pos] of [[0xf3f4ff,5,[-5,8,9]],[0x667cff,6,[8,4,3]],[0x76c1ff,3,[-2,1,-5]]]){const l=new THREE.DirectionalLight(color,intensity);l.position.set(...pos);scene.add(l);}
+  const pc=new THREE.Group();scene.add(pc);
+  const metal=new THREE.MeshStandardMaterial({color:'#333a49',metalness:.85,roughness:.3});
+  const black=new THREE.MeshStandardMaterial({color:'#111520',metalness:.5,roughness:.32});
+  const keyMaterial=new THREE.MeshStandardMaterial({color:'#4b5262',metalness:.3,roughness:.44});
+  const lightMaterial=new THREE.MeshBasicMaterial({color:'#91a5ff'});
+  const clickable=[],textures=new Map(),titles=new Map(),loader=new THREE.TextureLoader();
+  let dirty=true,motion=true,visible=true,current=projects[0],category='all',animation,last=0,elapsed=0;
+  let video,videoTexture,playing=false,pointerDown,dragging=false;
+  const pointer=new THREE.Vector2(),tilt=new THREE.Vector2();
+  function box(w,h,d,material,x=0,y=0,z=0,parent=pc,r=.05){const m=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,Math.min(r,w/3,h/3,d/3)),material);m.position.set(x,y,z);parent.add(m);return m;}
+  function plane(w,h,texture,x,y,z,parent=pc){const material=new THREE.MeshBasicMaterial({map:texture,toneMapped:false});const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),material);m.position.set(x,y,z);parent.add(m);return m;}
+  function canvasTexture(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());return t;}
+  projects.forEach(p=>{
+    const t=loader.load(p.image,()=>{dirty=true;});t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());textures.set(p.id,t);
+  });
+  function titleFor(p,width){
+    const key=p.id+'-'+width.toFixed(2);if(titles.has(key))return titles.get(key);
+    const texture=canvasTexture(Math.round(width*330),66,(ctx,w,h)=>{ctx.fillStyle='#20283c';ctx.fillRect(0,0,w,h);ctx.fillStyle=p.accent;ctx.beginPath();ctx.roundRect(21,20,26,26,7);ctx.fill();ctx.font='500 26px sans-serif';ctx.fillStyle='#e3e8fa';ctx.fillText(p.title,65,42);ctx.font='19px monospace';ctx.textAlign='right';ctx.fillStyle='#8c9bb9';ctx.fillText(p.stack.slice(0,2).join(' / '),w-24,42);});
+    titles.set(key,texture);return texture;
   }
-  const stage = new THREE.Group(); scene.add(stage);
-  const chrome = new THREE.MeshPhysicalMaterial({ color:'#acb8d3', metalness:1, roughness:.22, clearcoat:1, side:THREE.DoubleSide });
-  const cobalt = new THREE.MeshPhysicalMaterial({ color:'#3548e8', metalness:.82, roughness:.21, clearcoat:1, side:THREE.DoubleSide });
-  const graphite = new THREE.MeshStandardMaterial({ color:'#101522', metalness:.8, roughness:.28 });
-  const edge = new THREE.MeshBasicMaterial({ color:'#7c92ff', transparent:true, opacity:.65 });
-  let visible=true, motion=true, dirty=true, current=projects[0], elapsed=0, category='all', animation, last=0;
-  let video, videoTexture, playing=false, pointerDown, dragging=false;
-  const aim=new THREE.Vector2(), rotation=new THREE.Vector2(), textures=new Map(), loader=new THREE.TextureLoader();
-  projects.forEach(p=>{const t=loader.load(p.image,()=>{dirty=true;});t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());textures.set(p.id,t);});
-  function mesh(geometry,material,parent=stage){const m=new THREE.Mesh(geometry,material);parent.add(m);return m;}
-  // Broad bent metal surfaces, lit like a sculpture in a photography studio.
-  function ribbon(offset,material,scale){
-    const positions=[],indices=[],count=180;
-    for(let i=0;i<=count;i++){
-      const t=i/count*Math.PI*1.86+offset;
-      for(const side of [-1,1]){const width=side*(.28+.18*Math.sin(t*2));positions.push((3.65+width*Math.cos(t*1.4))*Math.cos(t),(2.8+width*Math.cos(t*1.4))*Math.sin(t),Math.sin(t*2)*.85+width*Math.sin(t*1.4));}
-      if(i<count){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
-    }
-    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
-    const m=mesh(geometry,material);m.scale.setScalar(scale);m.position.z=-1.6;m.rotation.set(.12,-.22,-.28);return m;
+  // A real desk silhouette: monitor, articulated stand, tower, keyboard and mouse.
+  box(13.7,.22,5.2,new THREE.MeshStandardMaterial({color:'#080c15',metalness:.15,roughness:.7}),.5,-2.1,1);
+  box(8.6,5.12,.34,black,0,1.08,0);
+  box(8.42,4.91,.07,metal,0,1.12,.19);
+  box(.35,1.25,.38,metal,0,-1.96,-.22);
+  box(2.1,.12,1.36,metal,0,-1.92,.03);
+  box(.25,.025,.012,lightMaterial,0,-1.38,.245);
+  const wallpaper=canvasTexture(1600,900,(ctx,w,h)=>{
+    const g=ctx.createLinearGradient(0,0,w,h);g.addColorStop(0,'#142751');g.addColorStop(.52,'#10223f');g.addColorStop(1,'#07101f');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+    for(let i=0;i<4;i++){ctx.lineWidth=105-i*15;ctx.strokeStyle=['#5563a42a','#697acd24','#7a91dc1c','#96b5fc15'][i];ctx.beginPath();ctx.ellipse(1200,400,500+i*35,230+i*22,-.4,0,Math.PI*2);ctx.stroke();}
+    ctx.font='20px monospace';ctx.fillStyle='#8fadd4';ctx.fillText('DANIL YAROSH / WORKSPACE',42,49);ctx.textAlign='right';ctx.fillText('08 PROJECTS',w-42,49);
+  });
+  plane(8.1,4.56,wallpaper,0,1.12,.236);
+  const taskbar=new THREE.Group();taskbar.position.set(0,-.91,.3);pc.add(taskbar);
+  box(8.1,.34,.02,new THREE.MeshBasicMaterial({color:'#101a2c'}),0,0,0,taskbar);
+  projects.forEach((p,i)=>{
+    const icon=canvasTexture(100,100,(ctx,w,h)=>{ctx.fillStyle=p.accent;ctx.beginPath();ctx.roundRect(12,12,76,76,19);ctx.fill();ctx.fillStyle='#172238';ctx.font='bold 35px sans-serif';ctx.textAlign='center';ctx.fillText(p.number,50,63);});
+    const m=plane(.22,.22,icon,-1.7+i*.48,0,.02,taskbar);m.userData.projectId=p.id;clickable.push(m);
+  });
+  const tower=new THREE.Group();tower.position.set(5.32,-.17,-.22);pc.add(tower);
+  box(1.75,3.65,2.35,black,0,0,0,tower,.11);
+  box(1.54,3.42,.045,new THREE.MeshPhysicalMaterial({color:'#243047',metalness:.72,roughness:.22}),0,0,1.19,tower);
+  const fans=[];
+  for(let i=0;i<3;i++){
+    const torus=new THREE.Mesh(new THREE.TorusGeometry(.43,.028,8,48),new THREE.MeshBasicMaterial({color:i===1?'#84cdd5':'#8095ff'}));torus.position.set(0,.85-i*.9,1.23);tower.add(torus);
+    const fan=new THREE.Group();fan.position.copy(torus.position);tower.add(fan);
+    for(let j=0;j<5;j++){const blade=box(.095,.28,.01,metal,0,.19,0,fan,.03);const pivot=new THREE.Group();fan.add(pivot);pivot.rotation.z=j*Math.PI*2/5;pivot.add(blade);}
+    fans.push(fan);
   }
-  const sculpture=ribbon(.25,chrome,1), accentRibbon=ribbon(2.8,cobalt,.86);
-  accentRibbon.rotation.set(.25,.45,.38);accentRibbon.position.z=-2.1;
-  const glowCanvas=document.createElement('canvas');glowCanvas.width=glowCanvas.height=128;
-  const context=glowCanvas.getContext('2d'), gradient=context.createRadialGradient(64,64,0,64,64,64);
-  gradient.addColorStop(0,'#5760f966');gradient.addColorStop(.5,'#343dba18');gradient.addColorStop(1,'#20224a00');context.fillStyle=gradient;context.fillRect(0,0,128,128);
-  const glowTexture=new THREE.CanvasTexture(glowCanvas);
-  const glow=mesh(new THREE.PlaneGeometry(15,12),new THREE.MeshBasicMaterial({map:glowTexture,transparent:true,depthWrite:false}));glow.position.z=-3.8;
-  function makeFrame(){
-    const group=new THREE.Group();stage.add(group);
-    const body=mesh(new RoundedBoxGeometry(1,1,.15,4,.055),graphite,group);
-    const border=mesh(new RoundedBoxGeometry(1,1,.025,4,.02),chrome,group);border.position.z=.081;
-    const pictureMaterial=new THREE.MeshBasicMaterial({toneMapped:false});
-    const picture=mesh(new THREE.PlaneGeometry(1,1),pictureMaterial,group);picture.position.z=.099;
-    const indicator=mesh(new THREE.PlaneGeometry(.2,.025),edge,group);indicator.position.z=.11;
-    return {group,body,border,picture,indicator,pictureMaterial};
+  box(.13,.03,.012,lightMaterial,.52,1.45,1.23,tower);
+  const keyboard=new THREE.Group();keyboard.position.set(-.35,-1.94,2.08);keyboard.rotation.y=-.06;pc.add(keyboard);
+  box(4.4,.16,1.36,black,0,0,0,keyboard,.09);
+  const keyGeometry=new RoundedBoxGeometry(.235,.095,.23,2,.025);
+  for(let row=0;row<4;row++)for(let col=0;col<14;col++){const key=new THREE.Mesh(keyGeometry,keyMaterial);key.position.set(-1.86+col*.285,.12,-.45+row*.285);keyboard.add(key);}
+  box(1.45,.09,.22,keyMaterial,-.15,.12,.58,keyboard,.025);
+  box(4.1,.018,.018,new THREE.MeshBasicMaterial({color:'#6d82c5'}),0,.03,.69,keyboard);
+  const mouse=new THREE.Group();mouse.position.set(3,-1.82,2.1);mouse.rotation.y=-.16;pc.add(mouse);
+  const mouseBody=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),black);mouseBody.scale.set(.35,.19,.55);mouse.add(mouseBody);box(.045,.035,.14,keyMaterial,0,.19,-.12,mouse,.012);
+  // Three overlapping application windows stay within the physical display.
+  function appWindow(){
+    const group=new THREE.Group();pc.add(group);
+    const backdrop=box(1,1,.013,new THREE.MeshBasicMaterial({color:'#080e1c'}),0,0,0,group,.012);
+    const border=box(1,1,.018,new THREE.MeshBasicMaterial({color:'#425271'}),0,0,-.01,group,.013);
+    const image=plane(1,1,null,0,-.08,.018,group),bar=plane(1,.2,null,0,0,.023,group);
+    clickable.push(image,bar,backdrop);return {group,backdrop,border,image,bar};
   }
-  const hero=makeFrame(), previous=makeFrame(), next=makeFrame();
-  function fillFrame(frame,p,maxWidth,maxHeight){
-    const item=p.media.items[0],aspect=item.width/item.height,height=Math.min(maxHeight,maxWidth/aspect),width=height*aspect;
-    frame.body.scale.set(width+.18,height+.18,1);frame.border.scale.set(width+.09,height+.09,1);frame.picture.scale.set(width,height,1);
-    frame.pictureMaterial.map=textures.get(p.id);frame.pictureMaterial.needsUpdate=true;
-    frame.indicator.position.set(width/2-.2,-height/2-.06,.11);frame.group.userData.projectId=p.id;
+  const active=appWindow(),previous=appWindow(),next=appWindow();
+  function fillWindow(frame,p,w,h){
+    const aspect=p.media.items[0].width/p.media.items[0].height;
+    if(aspect<1)w=(h-.25)*aspect+.15;
+    frame.group.userData.projectId=p.id;for(const child of frame.group.children)child.userData.projectId=p.id;
+    frame.backdrop.scale.set(w,h,1);frame.border.scale.set(w+.035,h+.035,1);
+    const ih=Math.min(h-.25,(w-.12)/aspect),iw=ih*aspect;
+    frame.image.scale.set(iw,ih,1);frame.image.material.map=textures.get(p.id);frame.image.material.needsUpdate=true;
+    frame.bar.scale.x=w;frame.bar.position.y=h/2-.1;frame.bar.material.map=titleFor(p,w);frame.bar.material.needsUpdate=true;
   }
-  previous.group.position.set(-2.8,-.25,-2.7);previous.group.rotation.set(.04,.36,-.15);previous.group.scale.setScalar(.68);
-  next.group.position.set(2.65,.65,-2.2);next.group.rotation.set(-.04,-.35,.14);next.group.scale.setScalar(.68);
-  hero.group.rotation.set(-.04,-.16,.035);
+  active.group.position.set(.28,1.07,.36);previous.group.position.set(-1.3,1.67,.275);next.group.position.set(1.18,.55,.295);
   function stopVideo(){
     playing=false;if(video){video.pause();video.removeAttribute('src');video.load();video.remove();video=undefined;}videoTexture?.dispose();videoTexture=undefined;
-    hero.pictureMaterial.map=textures.get(current.id);dirty=true;document.querySelector('#scene-interact').textContent='Смотреть видео ↗';
+    active.image.material.map=textures.get(current.id);dirty=true;document.querySelector('#scene-interact').textContent='▶ Смотреть запись';
   }
   function focus(id){
-    const p=projects.find(p=>p.id===id);if(!p)return;
-    const oldIndex=projects.indexOf(current);stopVideo();current=p;
+    const p=projects.find(p=>p.id===id);if(!p)return;stopVideo();current=p;
     const list=projects.filter(p=>category==='all'||p.category===category),index=list.findIndex(p=>p.id===id);
-    fillFrame(hero,p,5.5,4.65);fillFrame(previous,list[(index-1+list.length)%list.length],3.8,4.7);fillFrame(next,list[(index+1)%list.length],3.8,4.7);
-    previous.group.visible=next.group.visible=list.length>1;edge.color.set(p.accent);
-    if(motion)animation={start:performance.now(),direction:projects.indexOf(p)>=oldIndex?1:-1};else hero.group.position.set(0,0,.65);
+    fillWindow(active,p,5.9,3.49);fillWindow(previous,list[(index-1+list.length)%list.length],4.85,2.86);fillWindow(next,list[(index+1)%list.length],4.8,2.7);
+    previous.group.visible=next.group.visible=list.length>1;
+    if(motion)animation={start:performance.now()};else active.group.scale.setScalar(1);
     host.dataset.project=id;dirty=true;
   }
   const raycaster=new THREE.Raycaster();
-  function targetAt(event){
-    const rect=renderer.domElement.getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1),camera);
-    const hit=raycaster.intersectObjects([hero.picture,previous.picture,next.picture],false).find(h=>h.object.parent.visible);return hit?.object.parent.userData.projectId;
-  }
+  function targetAt(e){const r=renderer.domElement.getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);return raycaster.intersectObjects(clickable,false).find(hit=>hit.object.parent.visible)?.object.userData.projectId;}
   host.addEventListener('pointerdown',e=>{pointerDown={x:e.clientX,y:e.clientY};dragging=false;host.setPointerCapture(e.pointerId);});
-  host.addEventListener('pointermove',e=>{
-    if(pointerDown){const dx=e.clientX-pointerDown.x,dy=e.clientY-pointerDown.y;dragging||=Math.hypot(dx,dy)>7;rotation.set(THREE.MathUtils.clamp(dx*.003,-.5,.5),THREE.MathUtils.clamp(dy*.002,-.25,.25));dirty=true;}
-    else{const r=host.getBoundingClientRect();aim.set((e.clientX/r.width-.5)*.14,(e.clientY/r.height-.5)*.09);host.style.cursor=targetAt(e)?'pointer':'grab';if(motion)dirty=true;}
-  });
-  host.addEventListener('pointerup',e=>{if(pointerDown&&!dragging){const id=targetAt(e);if(id)onSelect(id);}pointerDown=undefined;rotation.set(0,0);dirty=true;});
-  host.addEventListener('pointercancel',()=>{pointerDown=undefined;rotation.set(0,0);dirty=true;});host.addEventListener('pointerleave',()=>aim.set(0,0));
+  host.addEventListener('pointermove',e=>{if(pointerDown){const dx=e.clientX-pointerDown.x,dy=e.clientY-pointerDown.y;dragging||=Math.hypot(dx,dy)>7;tilt.set(THREE.MathUtils.clamp(dx*.0015,-.28,.28),THREE.MathUtils.clamp(dy*.001,-.12,.12));dirty=true;}else{const r=host.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width-.5,(e.clientY-r.top)/r.height-.5);host.style.cursor=targetAt(e)?'pointer':'grab';if(motion)dirty=true;}});
+  host.addEventListener('pointerup',e=>{if(pointerDown&&!dragging){const id=targetAt(e);if(id)onSelect(id);}pointerDown=undefined;tilt.set(0,0);dirty=true;});host.addEventListener('pointercancel',()=>{pointerDown=undefined;tilt.set(0,0);dirty=true;});
   function resize(){
-    const w=host.clientWidth,h=host.clientHeight,mobile=w<700;
-    renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.35:1.75));renderer.setSize(w,h);camera.aspect=w/h;camera.position.set(0,0,mobile?18.4:14.8);
-    if(mobile){stage.position.set(0,-1.7,0);stage.scale.setScalar(.72);camera.setViewOffset(w,h,0,h*.06,w,h);}
-    else{stage.position.set(w/h<1.3?2.5:3.1,.25,0);stage.scale.setScalar(w<1100?.88:1);camera.clearViewOffset();}
-    camera.updateProjectionMatrix();dirty=true;
+    const w=host.clientWidth,h=host.clientHeight,mobile=innerWidth<700;
+    renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.35:1.75));renderer.setSize(w,h);camera.aspect=w/h;
+    camera.position.set(0,mobile?3.5:3.2,mobile?18.8:17.4);camera.lookAt(0,.2,0);camera.updateProjectionMatrix();
+    pc.position.set(mobile?-1.2:innerWidth<900?1.65:innerWidth<1100?2.05:1.75,mobile?.05:0,0);pc.scale.setScalar(mobile?1.08:innerWidth<900?.48:innerWidth<1100?.72:1);
+    pc.rotation.y=-.1;dirty=true;
   }
-  new ResizeObserver(resize).observe(host);
-  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();stopVideo();onFailure();});
+  new ResizeObserver(resize).observe(host);renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();stopVideo();onFailure();});
   focus(current.id);resize();host.dataset.ready='true';
   function tick(now){
     requestAnimationFrame(tick);if(document.hidden||!visible)return;
-    if(document.querySelector('dialog[open]')){if(video&&!video.paused)video.pause();return;}
-    if(!motion&&!animation&&!pointerDown&&!playing&&!dirty)return;
-    if(now-last<(innerWidth<700?32:20))return;elapsed+=Math.min((now-last)/1000,.05);last=now;
-    if(motion){sculpture.rotation.z=-.28+Math.sin(elapsed*.12)*.08;accentRibbon.rotation.z=.38-Math.sin(elapsed*.12)*.12;hero.group.position.y=Math.sin(elapsed*.6)*.07;previous.group.position.y=-.25+Math.sin(elapsed*.5+1)*.09;next.group.position.y=.65+Math.sin(elapsed*.5+2)*.09;}
-    hero.group.rotation.y=THREE.MathUtils.lerp(hero.group.rotation.y,-.16+rotation.x+(motion?aim.x:0),.12);hero.group.rotation.x=THREE.MathUtils.lerp(hero.group.rotation.x,-.04+rotation.y+(motion?aim.y:0),.12);
-    if(animation){const t=Math.min((now-animation.start)/850,1),ease=1-Math.pow(1-t,3);hero.group.position.x=(1-ease)*animation.direction*1.4;hero.group.position.z=.65-(1-ease)*1.8;hero.group.rotation.z=.035+(1-ease)*animation.direction*.13;if(t===1)animation=undefined;}
+    if(document.querySelector('dialog[open]')){if(video)stopVideo();return;}
+    if(!motion&&!dirty&&!playing&&!animation&&!pointerDown)return;if(now-last<(innerWidth<700?32:20))return;
+    elapsed+=Math.min((now-last)/1000,.05);last=now;
+    pc.rotation.y=THREE.MathUtils.lerp(pc.rotation.y,-.1+tilt.x+(motion?pointer.x*.035:0),.15);pc.rotation.x=THREE.MathUtils.lerp(pc.rotation.x,tilt.y,.15);
+    if(motion)fans.forEach((fan,i)=>{fan.rotation.z=elapsed*(1.2+i*.2);});
+    if(animation){const t=Math.min((now-animation.start)/500,1);active.group.scale.setScalar(.965+.035*(1-Math.pow(1-t,3)));if(t===1)animation=undefined;}
     renderer.render(scene,camera);dirty=false;
   }
   requestAnimationFrame(tick);
   return {
-    focus,overview(){category='all';focus(projects[0].id);},filter(value){category=value;focus(projects.find(p=>value==='all'||p.category===value).id);},
+    focus,overview(){category='all';focus(projects[0].id);tilt.set(0,0);pointer.set(0,0);dirty=true;},filter(value){category=value;focus(projects.find(p=>value==='all'||p.category===value).id);},
     async interact(id){
-      if(playing){stopVideo();return 'Видео остановлено.';}if(current.id!==id)focus(id);
-      const clip=current.media.items.find(i=>i.type==='video');if(!clip)return 'Для проекта нет видеозаписи.';
-      video=document.createElement('video');video.src=clip.src;video.muted=true;video.playsInline=true;video.preload='metadata';video.hidden=true;video.dataset.sceneVideo='true';host.appendChild(video);
-      const requestedVideo=video;
-      try{await requestedVideo.play();if(video!==requestedVideo)return 'Видео остановлено.';videoTexture=new THREE.VideoTexture(video);videoTexture.colorSpace=THREE.SRGBColorSpace;hero.pictureMaterial.map=videoTexture;playing=true;dirty=true;document.querySelector('#scene-interact').textContent='Остановить видео Ⅱ';video.addEventListener('ended',stopVideo,{once:true});return 'На экране — запись работы проекта. Без звука.';}
-      catch{stopVideo();return 'Видео можно открыть в подробностях проекта.';}
+      if(playing){stopVideo();return 'Запись остановлена.';}if(current.id!==id)focus(id);
+      const clip=current.media.items.find(i=>i.type==='video');if(!clip)return 'Для проекта нет записи.';
+      video=document.createElement('video');video.src=clip.src;video.muted=true;video.playsInline=true;video.preload='metadata';video.hidden=true;video.dataset.sceneVideo='true';host.appendChild(video);const requested=video;
+      try{await requested.play();if(video!==requested)return 'Запись остановлена.';videoTexture=new THREE.VideoTexture(video);videoTexture.colorSpace=THREE.SRGBColorSpace;active.image.material.map=videoTexture;playing=true;dirty=true;document.querySelector('#scene-interact').textContent='Ⅱ Остановить запись';video.addEventListener('ended',stopVideo,{once:true});return 'Запись работы проекта · без звука';}catch{if(video===requested)stopVideo();return 'Запись можно открыть в подробностях проекта.';}
     },
     stopVideo,setVisible(value){visible=value;if(!value)stopVideo();dirty=true;},setMotion(value){motion=value;host.dataset.motion=String(value);if(!value)animation=undefined;dirty=true;},resize,
   };

@@ -134,7 +134,7 @@ function setView(useScene) {
   document.body.classList.toggle('scene-mode', useScene);
   document.querySelector('main').inert = useScene;
   document.querySelector('footer').inert = useScene;
-  viewToggle.textContent = useScene ? 'Все работы ↗' : '3D-галерея ↗';
+  viewToggle.textContent = useScene ? 'Карточки ↗' : 'Рабочий стол ↗';
   viewToggle.setAttribute('aria-pressed', String(!useScene));
   exhibition?.setVisible(useScene);
   if (useScene) exhibition?.resize();
@@ -159,7 +159,7 @@ function selectSceneProject(id) {
   document.querySelector('#scene-project-description').textContent = p.description;
   document.querySelector('#scene-project-stack').innerHTML = p.stack.map(t => '<span>'+t+'</span>').join('');
   document.querySelector('#scene-project-source').href = github + p.source;
-  document.querySelector('#scene-interact').textContent = 'Смотреть видео ↗';
+  document.querySelector('#scene-interact').textContent = '▶ Смотреть запись';
   document.querySelector('#scene-effect-status').textContent = '';
   document.querySelector('#scene-current').textContent = p.number + ' / 08';
   sceneShell.style.setProperty('--work-color', p.accent);
@@ -175,15 +175,16 @@ function overview() {
   sceneCategory = 'all';
   document.querySelectorAll('[data-scene-filter]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sceneFilter === 'all')));
   document.querySelectorAll('#scene-dock [data-scene-project]').forEach(b => { b.hidden = false; });
-  document.querySelector('#scene-intro').hidden = false;
+  document.querySelector('#scene-intro').hidden = true;
   document.querySelector('#scene-project').hidden = true;
   document.querySelectorAll('[data-scene-project]').forEach(b => b.setAttribute('aria-pressed', 'false'));
   delete sceneShell.dataset.selected;
   delete sceneShell.dataset.effect;
+  selectSceneProject(projects[0].id);
   exhibition?.overview();
   document.querySelector('#scene-current').textContent = '01 / 08';
 }
-document.querySelector('#scene-dock').innerHTML = projects.map(p => '<button data-scene-project="'+p.id+'" data-category="'+p.category+'" aria-pressed="false" style="--project-accent:'+p.accent+'"><img src="'+p.image+'" alt="" decoding="async"/><span class="dock-copy"><span>'+p.number+' / '+p.stack[0]+'</span><strong>'+p.title+'</strong></span></button>').join('');
+document.querySelector('#scene-dock').innerHTML = projects.map(p => `<button data-scene-project="${p.id}" data-category="${p.category}" aria-pressed="false" style="--project-accent:${p.accent}"><span class="sidebar-index">${p.number}</span><span class="dock-copy"><strong>${p.title}</strong><span class="dock-summary">${p.description}</span><span class="dock-stack">${p.stack.slice(0,2).join(' / ')}</span></span><span class="sidebar-arrow" aria-hidden="true">↗</span></button>`).join('');
 document.querySelector('#scene-labels').innerHTML = '';
 sceneShell.addEventListener('click', e => {
   const b = e.target.closest('[data-scene-project]');
@@ -272,4 +273,5 @@ import('./world.js').then(({ createWorld }) => {
   exhibition.setVisible(sceneMode);
   exhibition.setMotion(motionButton.getAttribute('aria-pressed') === 'true');
   if(selectedId) exhibition.focus(selectedId);
+  else selectSceneProject(projects.some(p => p.id === initialId) ? initialId : projects[0].id);
 }).catch(fallback);
