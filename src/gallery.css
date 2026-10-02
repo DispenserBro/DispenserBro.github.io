@@ -1,5 +1,8 @@
 :root{--accent:#a5b6ff;--bg:#0a0c13;--work-color:#a6e98d}
 .scene-watermark{display:none}
+#scene-power[aria-pressed=false]{border-color:#7d8fa0;color:#c7d4e7;background:#7889a41c}.scene-interaction button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:699px){.scene-shell .scene-help{display:block;top:calc(42dvh + 49px);bottom:auto;left:20px;right:20px;font-size:8px}.scene-help>span:nth-child(2){display:none}}
+@media(max-height:700px) and (max-width:699px){.scene-shell .scene-help{top:calc(35dvh + 45px)}}
 body{background:var(--bg)}.button{border-radius:10px;box-shadow:none;min-height:44px}.button-primary{background:#b0bdff;border-color:#b0bdff;color:#101628}.button-primary:hover{background:#d0d7ff;box-shadow:none;color:#101628}
 .header-tools{display:flex;align-items:center;gap:24px}.brand-name{display:none}.brand-mark{font-size:32px;letter-spacing:-2px}.header nav{gap:25px}.header nav a{font-size:12px}.view-toggle{border:1px solid #ffffff23;background:#ffffff04;color:#c3c9dd;padding:10px 15px;font-size:11px;border-radius:8px}.header-contact{font-size:11px;color:#bcc8ff;border:1px solid #8998dd55;border-radius:8px;padding:11px 18px;background:#8fa1ff08}.github-header{font-size:11px}
 body.scene-mode{overflow:hidden}body.scene-mode>main,body.scene-mode>footer{display:none}body.scene-mode .header{position:fixed;z-index:30;top:0;left:0;right:0;max-width:none;height:80px;padding:0 34px;background:linear-gradient(#0a0c13,#0a0c1360);border-bottom:1px solid #ffffff09}
