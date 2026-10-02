@@ -127,7 +127,7 @@ export function createWorld({ projects, onSelect, onFailure }) {
     controlStatus.textContent=powered?'ПК включён':'ПК выключен — нажми ⏻ на корпусе';host.dataset.power=powered?'on':'off';dirty=true;
   }
   powerControl.addEventListener('click',()=>setPower(!powered));
-  function pressKey(key){if(!powered)return;key.position.y=.075;key.material.color.set('#8bafff');pressedKeys.set(key,performance.now()+180);controlStatus.textContent='Нажата клавиша '+key.userData.label;host.dataset.lastKey=key.userData.label;dirty=true;}
+  function pressKey(key){key.position.y=.075;key.material.color.set('#8bafff');pressedKeys.set(key,performance.now()+180);controlStatus.textContent='Нажата клавиша '+key.userData.label;host.dataset.lastKey=key.userData.label;dirty=true;}
   function releaseKey(){for(const key of pressedKeys.keys()){key.position.y=.12;key.material.color.copy(keyMaterial.color);}pressedKeys.clear();dirty=true;}
   function stopVideo(){
     playing=false;if(video){video.pause();video.removeAttribute('src');video.load();video.remove();video=undefined;}videoTexture?.dispose();videoTexture=undefined;
@@ -144,7 +144,7 @@ export function createWorld({ projects, onSelect, onFailure }) {
   const raycaster=new THREE.Raycaster();
   function setRay(e){const r=renderer.domElement.getBoundingClientRect();raycaster.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);}
   function isVisible(object){for(let node=object;node;node=node.parent)if(!node.visible)return false;return true;}
-  function targetAt(e){setRay(e);return raycaster.intersectObjects(clickable,false).find(hit=>isVisible(hit.object)&&(powered||hit.object.userData.kind==='power'))?.object;}
+  function targetAt(e){setRay(e);return raycaster.intersectObjects(clickable,false).find(hit=>isVisible(hit.object)&&(powered||['power','key'].includes(hit.object.userData.kind)))?.object;}
   function screenPoint(e,z){setRay(e);pc.updateMatrixWorld(true);const localRay=raycaster.ray.clone().applyMatrix4(pc.matrixWorld.clone().invert());return localRay.intersectPlane(new THREE.Plane(new THREE.Vector3(0,0,1),-z),new THREE.Vector3());}
   host.addEventListener('pointerdown',e=>{
     if(e.button!==0)return;
@@ -183,7 +183,7 @@ export function createWorld({ projects, onSelect, onFailure }) {
   function cancelInput(){gesture=undefined;pointerDown=undefined;tilt.set(0,0);releaseKey();}
   window.addEventListener('blur',cancelInput);
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelInput();stopVideo();}});
-  document.addEventListener('keydown',e=>{if(!visible||!powered||document.querySelector('dialog[open]')||e.target.closest('button,a,input,textarea,select')||e.ctrlKey||e.metaKey||e.altKey)return;const name=({Escape:'Esc',Backspace:'⌫',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→',' ':'Space',CapsLock:'Caps'})[e.key]||e.key.toUpperCase();const key=keyMeshes.get(name)||keyMeshes.get(e.key);if(key)pressKey(key);});
+  document.addEventListener('keydown',e=>{if(!visible||document.querySelector('dialog[open]')||e.target.closest('button,a,input,textarea,select')||e.ctrlKey||e.metaKey||e.altKey)return;const name=({Escape:'Esc',Backspace:'⌫',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→',' ':'Space',CapsLock:'Caps'})[e.key]||e.key.toUpperCase();const key=keyMeshes.get(name)||keyMeshes.get(e.key);if(key)pressKey(key);});
   function resize(){
     const w=host.clientWidth,h=host.clientHeight,mobile=innerWidth<700;
     renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.35:1.75));renderer.setSize(w,h);camera.aspect=w/h;
