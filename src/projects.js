@@ -1,3 +1,4 @@
+import { projectMedia } from './media.js';
 export const projects = [
   {
     id: 'danro-jump', title: 'Danro Jump', kind: 'Аркадная игра', category: 'arcade', number: '01', visual: 'jump', image: './assets/danro-jump.webp', accent: '#a6e98d',
@@ -56,4 +57,4 @@ export const projects = [
     overview: 'Этот набор инструментов помогает сделать тему для Exchanger, посмотреть её в редакторе и собрать пакет. Оформление поставляется отдельно от приложения, а проверки помогают убедиться, что тема содержит нужные ресурсы и соответствует контракту.',
     features: ['Есть исходники тем, примеры и сцены, в которых можно посмотреть оформление до сборки.', 'Плагин редактора и скрипты помогают собрать, активировать и проверить тему.', 'Проверки сверяют ресурсы темы с контрактом Exchanger.', 'Готовое оформление упаковывается в отдельный DLC-пакет .pck.'], tags: ['EditorPlugin', 'DLC', 'Контракты', '.pck'], platform: 'Редактор Godot', source: 'exchanger-theme-dlc-builder',
   },
-];
+].map(project => ({ ...project, media: projectMedia[project.id], image: projectMedia[project.id].items[0].src, imageAlt: projectMedia[project.id].items[0].label }));

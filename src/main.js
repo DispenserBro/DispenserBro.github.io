@@ -1,14 +1,20 @@
 import '@fontsource-variable/manrope';
 import '@fontsource/jetbrains-mono/400.css';
 import './style.css';
+import './polish.css';
 import { projects } from './projects.js';
 
 const github = 'https://github.com/DispenserBro/';
 const grid = document.querySelector('#project-grid');
 const dialog = document.querySelector('#project-dialog');
 let dialogTrigger;
+let dialogProject;
 
 function visual(project, detail = false) {
+  if (project.media) {
+    const portrait = project.media.items[0].height > project.media.items[0].width;
+    return `<div class="project-art capture-art ${portrait ? 'capture-portrait' : 'capture-landscape'}"><span class="visual-kicker">${project.kind}</span><img src="${project.image}" alt="${project.imageAlt}" loading="lazy" decoding="async" /><span class="capture-caption"><span>${project.stack[0]} / ${project.number}</span><strong>${project.title}</strong></span><span class="capture-badge">↗</span></div>`;
+  }
   const smallLabel = `<span class="visual-kicker">${project.kind}</span>`;
   if (project.visual === 'jump') return `<div class="project-art jump-art">${smallLabel}<img src="${project.image}" alt="${project.imageAlt}" loading="lazy" /><div class="art-caption">DANRO<br /><strong>JUMP</strong></div><span class="art-note">ИГРОВОЙ ЭКРАН / UNITY</span></div>`;
   if (project.visual === 'danro') return `<div class="project-art danro-art">${smallLabel}<img src="${project.image}" alt="${project.imageAlt}" loading="lazy" /><div class="art-caption">DANRO<span>2D-ПЛАТФОРМЕР</span></div><span class="art-note">ГРАФИКА ПРОЕКТА</span></div>`;
@@ -31,11 +37,37 @@ function openProject(id, trigger) {
   const project = projects.find((item) => item.id === id);
   if (!project) return;
   dialogTrigger = trigger;
+  dialogProject = project;
   document.querySelector('#dialog-content').innerHTML = `<div class="dialog-art" style="--project-accent:${project.accent}">${visual(project, true)}</div><div class="dialog-copy"><p class="eyebrow">${project.kind} / ${project.number}</p><h2 id="dialog-title">${project.title}</h2><p class="dialog-overview">${project.overview}</p><h3>Что есть в проекте</h3><ul>${project.features.map((feature) => `<li>${feature}</li>`).join('')}</ul><div class="dialog-meta"><span class="mono">ПЛАТФОРМА</span><p>${project.platform}</p></div><div class="project-stack">${[...project.stack, ...project.tags].map((tag) => `<span>${tag}</span>`).join('')}</div><div class="dialog-links"><a class="button button-primary" href="${github}${project.source}" target="_blank" rel="noopener noreferrer">Исходники на GitHub</a>${(project.extras || []).map((item) => `<a class="text-link" href="${item.url}" target="_blank" rel="noopener noreferrer">${item.title}</a>`).join('')}</div></div>`;
+  const art = document.querySelector('#dialog-content .dialog-art');
+  art.innerHTML = `<div class="media-stage" aria-live="polite"></div><div class="media-toolbar"><span class="mono">ВНУТРИ ПРОЕКТА</span><span id="media-caption"></span></div><div class="media-thumbs" role="group" aria-label="Скриншоты и видео">${project.media.items.map((item, index) => `<button class="media-button" data-media-index="${index}" aria-pressed="${index===0}" aria-label="${item.label}${item.type==='video'?', видео':''}">${item.type==='video'?'<span class="media-play">▶</span><span>Видео</span>':`<img src="${item.src}" alt="" loading="lazy" />`}</button>`).join('')}</div><p class="media-note">${project.media.note} Видео без звука.</p>`;
+  selectMedia(0);
   dialog.showModal();
   document.body.classList.add('dialog-active');
   history.replaceState(null, '', `#project-${id}`);
 }
+function selectMedia(index) {
+  const item = dialogProject?.media.items[index];
+  if (!item) return;
+  dialog.querySelectorAll('video').forEach(video => video.pause());
+  dialog.querySelector('.media-stage').innerHTML = item.type === 'video'
+    ? `<video controls playsinline preload="metadata" poster="${dialogProject.image}" src="${item.src}" aria-label="${item.label}"></video>`
+    : `<img src="${item.src}" alt="${item.label}" decoding="async" />`;
+  dialog.querySelector('#media-caption').textContent = `${item.label}${item.type==='video'?` · ${Math.round(item.duration)} сек.`:''}`;
+  dialog.querySelectorAll('[data-media-index]').forEach(button => button.setAttribute('aria-pressed',String(Number(button.dataset.mediaIndex)===index)));
+}
+dialog.addEventListener('click', event => {
+  const button = event.target.closest('[data-media-index]');
+  if (button) selectMedia(Number(button.dataset.mediaIndex));
+});
+dialog.addEventListener('keydown', event => {
+  if (!event.target.closest('.media-thumbs') || !['ArrowLeft','ArrowRight'].includes(event.key)) return;
+  event.preventDefault();
+  const buttons = [...dialog.querySelectorAll('[data-media-index]')];
+  const index = buttons.indexOf(event.target.closest('button'));
+  const next = (index + (event.key==='ArrowRight'?1:-1) + buttons.length) % buttons.length;
+  buttons[next].focus(); selectMedia(next);
+});
 function closeProject() {
   dialog.close();
 }
@@ -51,13 +83,14 @@ dialog.addEventListener('click', (event) => {
   }
 });
 dialog.addEventListener('close', () => {
+  dialog.querySelectorAll('video').forEach(video => { video.pause(); video.removeAttribute('src'); video.load(); });
   document.body.classList.remove('dialog-active');
   history.replaceState(null, '', '#projects');
   dialogTrigger?.focus({ preventScroll: true });
 });
-document.querySelectorAll('[data-filter]').forEach((button) => {
+document.querySelectorAll('.project-filters [data-filter]').forEach((button) => {
   button.addEventListener('click', () => {
-    document.querySelectorAll('[data-filter]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+    document.querySelectorAll('.project-filters [data-filter]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
     const category = button.dataset.filter;
     let count = 0;
     document.querySelectorAll('.project-card').forEach((item) => {
@@ -122,6 +155,8 @@ function selectSceneProject(id) {
   document.querySelector('#scene-project').hidden = false;
   document.querySelector('#scene-project-kind').textContent = p.kind + ' / ' + p.number;
   document.querySelector('#scene-project-title').textContent = p.title;
+  document.querySelector('#scene-project-preview').innerHTML = `<img src="${p.image}" alt="${p.imageAlt}" /><span>Скриншоты и видео <i aria-hidden="true">↗</i></span>`;
+  document.querySelector('#scene-project-preview').style.setProperty('--project-accent',p.accent);
   document.querySelector('#scene-project-description').textContent = p.description;
   document.querySelector('#scene-project-stack').innerHTML = p.stack.map(t => '<span>'+t+'</span>').join('');
   document.querySelector('#scene-project-source').href = github + p.source;
@@ -143,13 +178,14 @@ function overview() {
   delete sceneShell.dataset.effect;
   exhibition?.overview();
 }
-document.querySelector('#scene-dock').innerHTML = projects.map(p => '<button data-scene-project="'+p.id+'" data-category="'+p.category+'" aria-pressed="false" style="--project-accent:'+p.accent+'"><span>'+p.number+'</span><strong>'+p.title+'</strong></button>').join('');
+document.querySelector('#scene-dock').innerHTML = projects.map(p => '<button data-scene-project="'+p.id+'" data-category="'+p.category+'" aria-pressed="false" style="--project-accent:'+p.accent+'"><img src="'+p.image+'" alt="" decoding="async"/><span class="dock-copy"><span>'+p.number+' / '+p.stack[0]+'</span><strong>'+p.title+'</strong></span></button>').join('');
 document.querySelector('#scene-labels').innerHTML = projects.map(p => '<button class="scene-label" data-scene-project="'+p.id+'" aria-pressed="false" style="--project-accent:'+p.accent+'"><span>'+p.number+' / '+p.stack[0]+'</span><strong>'+p.title+'</strong><i aria-hidden="true">↗</i></button>').join('');
 sceneShell.addEventListener('click', e => {
   const b = e.target.closest('[data-scene-project]');
   if (b) selectSceneProject(b.dataset.sceneProject);
 });
 document.querySelector('#scene-project-details').addEventListener('click', e => openProject(selectedId, e.currentTarget));
+document.querySelector('#scene-project-preview').addEventListener('click', e => openProject(selectedId, e.currentTarget));
 document.querySelector('#scene-interact').addEventListener('click', () => {
   if (selectedId && exhibition) document.querySelector('#scene-effect-status').textContent = exhibition.interact(selectedId);
 });
