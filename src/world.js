@@ -51,8 +51,15 @@ export function createWorld({ projects, onSelect, onFailure }) {
   const exhibits=[],clickable=[],textures=[];
   const loader=new THREE.TextureLoader();
   const modelTextures={};
-  for(const [name,url] of Object.entries({jump:'./assets/danro-jump.webp',danro:'./assets/danro.webp',wizard:'./assets/wizard-scene.webp',character:'./assets/wizard.webp'})){
-    const t=loader.load(url);t.colorSpace=THREE.SRGBColorSpace;textures.push(t);modelTextures[name]=t;
+  for(const [name,url] of Object.entries({jump:'./assets/danro-jump.webp',danro:'./assets/danro.webp',wizard:'./assets/wizard-scene.webp',character:'./assets/wizard.png'})){
+    const t=loader.load(url,()=>{needsRender=true;});t.colorSpace=THREE.SRGBColorSpace;
+    if(name==='character'){
+      // Preserve the original pixel grid at every camera distance.
+      t.magFilter=THREE.NearestFilter;
+      t.minFilter=THREE.NearestFilter;
+      t.generateMipmaps=false;
+    }
+    textures.push(t);modelTextures[name]=t;
   }
   const projectTextures = {};
   projects.forEach(project => {
@@ -147,7 +154,7 @@ export function createWorld({ projects, onSelect, onFailure }) {
   }
   function addWizard(e){
     const g=e.model;box(g,2.6,.22,2.1,dark,0,.24);screen(g,2.5,1.6,0,1.45,-.8,projectTextures[e.project.id]);
-    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:modelTextures.character,transparent:true}));sprite.position.set(0,.94,.2);sprite.scale.set(1.42,1.42,1);g.add(sprite);
+    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:modelTextures.character,transparent:true,alphaTest:.5,depthWrite:false,toneMapped:false}));sprite.position.set(0,.94,.2);sprite.scale.set(1.42,1.42,1);g.add(sprite);
     for(const x of [-1.12,1.12])box(g,.15,1.1,.15,metal,x,.83,-.7);
     const orb=new THREE.Mesh(new THREE.IcosahedronGeometry(.17,1),e.glow);orb.position.set(.78,1.62,.1);g.add(orb);
     const spell=ring(g,1.05,e.glow,.58);spell.visible=false;
