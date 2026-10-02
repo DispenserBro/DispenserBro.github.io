@@ -2,6 +2,7 @@ import '@fontsource-variable/manrope';
 import '@fontsource/jetbrains-mono/400.css';
 import './style.css';
 import './polish.css';
+import './gallery.css';
 import { projects } from './projects.js';
 
 const github = 'https://github.com/DispenserBro/';
@@ -9,6 +10,7 @@ const grid = document.querySelector('#project-grid');
 const dialog = document.querySelector('#project-dialog');
 let dialogTrigger;
 let dialogProject;
+let exhibition;
 
 function visual(project, detail = false) {
   if (project.media) {
@@ -36,6 +38,7 @@ document.querySelector('#year').textContent = new Date().getFullYear();
 function openProject(id, trigger) {
   const project = projects.find((item) => item.id === id);
   if (!project) return;
+  exhibition?.stopVideo();
   dialogTrigger = trigger;
   dialogProject = project;
   document.querySelector('#dialog-content').innerHTML = `<div class="dialog-art" style="--project-accent:${project.accent}">${visual(project, true)}</div><div class="dialog-copy"><p class="eyebrow">${project.kind} / ${project.number}</p><h2 id="dialog-title">${project.title}</h2><p class="dialog-overview">${project.overview}</p><h3>Что есть в проекте</h3><ul>${project.features.map((feature) => `<li>${feature}</li>`).join('')}</ul><div class="dialog-meta"><span class="mono">ПЛАТФОРМА</span><p>${project.platform}</p></div><div class="project-stack">${[...project.stack, ...project.tags].map((tag) => `<span>${tag}</span>`).join('')}</div><div class="dialog-links"><a class="button button-primary" href="${github}${project.source}" target="_blank" rel="noopener noreferrer">Исходники на GitHub</a>${(project.extras || []).map((item) => `<a class="text-link" href="${item.url}" target="_blank" rel="noopener noreferrer">${item.title}</a>`).join('')}</div></div>`;
@@ -114,28 +117,24 @@ document.querySelectorAll('.reveal').forEach((item) => {
 
 const initialId = location.hash.replace('#project-', '');
 if (location.hash.startsWith('#project-')) openProject(initialId, null);
+window.addEventListener('hashchange', () => {
+  if (location.hash.startsWith('#project-')) openProject(location.hash.replace('#project-', ''), null);
+});
 
 // The 3D exhibition and the accessible document share the same project data.
-let exhibition;
 let sceneMode = true;
 let selectedId;
 let sceneCategory = 'all';
 const sceneShell = document.querySelector('#portfolio-scene');
 const viewToggle = document.querySelector('#view-toggle');
 const infoDialog = document.querySelector('#info-dialog');
-const effectButtons = {
-  'danro-jump': 'Включить подсветку', danro: 'Включить подсветку',
-  exchanger: 'Выдать жетоны', wizard: 'Применить заклинание',
-  plate: 'Подключить плату', typing: 'Набрать текст',
-  led: 'Зажечь панель', themes: 'Сменить тему',
-};
 function setView(useScene) {
   sceneMode = useScene;
   sceneShell.hidden = !useScene;
   document.body.classList.toggle('scene-mode', useScene);
   document.querySelector('main').inert = useScene;
   document.querySelector('footer').inert = useScene;
-  viewToggle.textContent = useScene ? 'Список проектов' : '3D-выставка';
+  viewToggle.textContent = useScene ? 'Все работы ↗' : '3D-галерея ↗';
   viewToggle.setAttribute('aria-pressed', String(!useScene));
   exhibition?.setVisible(useScene);
   if (useScene) exhibition?.resize();
@@ -160,8 +159,10 @@ function selectSceneProject(id) {
   document.querySelector('#scene-project-description').textContent = p.description;
   document.querySelector('#scene-project-stack').innerHTML = p.stack.map(t => '<span>'+t+'</span>').join('');
   document.querySelector('#scene-project-source').href = github + p.source;
-  document.querySelector('#scene-interact').textContent = effectButtons[id];
-  document.querySelector('#scene-effect-status').textContent = 'Это интерактивная иллюстрация проекта.';
+  document.querySelector('#scene-interact').textContent = 'Смотреть видео ↗';
+  document.querySelector('#scene-effect-status').textContent = '';
+  document.querySelector('#scene-current').textContent = p.number + ' / 08';
+  sceneShell.style.setProperty('--work-color', p.accent);
   document.querySelectorAll('[data-scene-project]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sceneProject === id)));
   sceneShell.dataset.selected = id;
   delete sceneShell.dataset.effect;
@@ -171,33 +172,53 @@ function selectSceneProject(id) {
 }
 function overview() {
   selectedId = null;
+  sceneCategory = 'all';
+  document.querySelectorAll('[data-scene-filter]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sceneFilter === 'all')));
+  document.querySelectorAll('#scene-dock [data-scene-project]').forEach(b => { b.hidden = false; });
   document.querySelector('#scene-intro').hidden = false;
   document.querySelector('#scene-project').hidden = true;
   document.querySelectorAll('[data-scene-project]').forEach(b => b.setAttribute('aria-pressed', 'false'));
   delete sceneShell.dataset.selected;
   delete sceneShell.dataset.effect;
   exhibition?.overview();
+  document.querySelector('#scene-current').textContent = '01 / 08';
 }
 document.querySelector('#scene-dock').innerHTML = projects.map(p => '<button data-scene-project="'+p.id+'" data-category="'+p.category+'" aria-pressed="false" style="--project-accent:'+p.accent+'"><img src="'+p.image+'" alt="" decoding="async"/><span class="dock-copy"><span>'+p.number+' / '+p.stack[0]+'</span><strong>'+p.title+'</strong></span></button>').join('');
-document.querySelector('#scene-labels').innerHTML = projects.map(p => '<button class="scene-label" data-scene-project="'+p.id+'" aria-pressed="false" style="--project-accent:'+p.accent+'"><span>'+p.number+' / '+p.stack[0]+'</span><strong>'+p.title+'</strong><i aria-hidden="true">↗</i></button>').join('');
+document.querySelector('#scene-labels').innerHTML = '';
 sceneShell.addEventListener('click', e => {
   const b = e.target.closest('[data-scene-project]');
   if (b) selectSceneProject(b.dataset.sceneProject);
 });
 document.querySelector('#scene-project-details').addEventListener('click', e => openProject(selectedId, e.currentTarget));
 document.querySelector('#scene-project-preview').addEventListener('click', e => openProject(selectedId, e.currentTarget));
-document.querySelector('#scene-interact').addEventListener('click', () => {
-  if (selectedId && exhibition) document.querySelector('#scene-effect-status').textContent = exhibition.interact(selectedId);
+document.querySelector('#scene-interact').addEventListener('click', async () => {
+  if (selectedId && exhibition) {
+    const id = selectedId, status = await exhibition.interact(id);
+    if (selectedId === id) document.querySelector('#scene-effect-status').textContent = status;
+  }
 });
 document.querySelector('#scene-back').addEventListener('click', overview);
 document.querySelector('#scene-overview').addEventListener('click', overview);
 document.querySelector('#scene-explore').addEventListener('click', () => selectSceneProject('danro-jump'));
+function stepProject(direction) {
+  const list = projects.filter(p => sceneCategory === 'all' || p.category === sceneCategory);
+  const index = list.findIndex(p => p.id === selectedId);
+  selectSceneProject(list[(Math.max(0,index) + direction + list.length) % list.length].id);
+}
+document.querySelector('#scene-prev').addEventListener('click', () => stepProject(-1));
+document.querySelector('#scene-next').addEventListener('click', () => stepProject(1));
+let wheelTime = 0;
+document.querySelector('#scene-canvas').addEventListener('wheel', e => {
+  if (!sceneMode || dialog.open || infoDialog.open || Math.abs(e.deltaY) < 12) return;
+  e.preventDefault();
+  if (performance.now() - wheelTime > 900) { stepProject(e.deltaY > 0 ? 1 : -1); wheelTime = performance.now(); }
+}, { passive: false });
 document.querySelectorAll('[data-scene-filter]').forEach(b => b.addEventListener('click', () => {
   sceneCategory = b.dataset.sceneFilter;
   document.querySelectorAll('[data-scene-filter]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   document.querySelectorAll('#scene-dock [data-scene-project]').forEach(x => { x.hidden = sceneCategory !== 'all' && x.dataset.category !== sceneCategory; });
-  overview();
   exhibition?.filter(sceneCategory);
+  selectSceneProject(projects.find(p => sceneCategory === 'all' || p.category === sceneCategory).id);
 }));
 viewToggle.addEventListener('click', () => { setView(!sceneMode); if (!sceneMode) document.querySelector('#projects').scrollIntoView(); });
 document.querySelector('[data-enter-scene]').addEventListener('click', () => setView(true));
@@ -227,9 +248,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { overview(); return; }
   if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !e.target.closest('.scene-category-bar')) {
     e.preventDefault();
-    const visible = projects.filter(p => sceneCategory === 'all' || p.category === sceneCategory);
-    const i = visible.findIndex(p => p.id === selectedId);
-    selectSceneProject(visible[(i + (e.key === 'ArrowRight' ? 1 : -1) + visible.length) % visible.length].id);
+    stepProject(e.key === 'ArrowRight' ? 1 : -1);
   }
 });
 const motionButton = document.querySelector('#scene-motion');
